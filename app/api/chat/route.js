@@ -1,3 +1,4 @@
+// Тест колаборації
 import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
 import { PARTS_ASSISTANT_POLICY, SCOPE_REPLY, INVALID_VIN_REPLY, UNAVAILABLE_REPLY, obviousOutOfScope, invalidVinInMessage } from '../../../lib/partsAssistantPolicy';
