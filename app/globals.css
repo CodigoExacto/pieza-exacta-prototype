@@ -715,6 +715,41 @@ textarea:focus-visible {
   opacity: 0.5;
   cursor: default;
 }
+.composer .mic-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.composer .mic-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.composer .mic-btn:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.composer .mic-btn.listening {
+  border-color: #b42318;
+  color: #b42318;
+  background: #feeeea;
+}
+.composer .mic-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.voice-status {
+  margin: 0 0 8px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+}
 .composer .send-btn {
   flex: none;
   padding: 11px 13px;

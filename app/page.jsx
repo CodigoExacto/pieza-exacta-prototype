@@ -50,6 +50,11 @@ const copy = {
     removePhoto: "Quitar foto",
     photoTooLarge: "La imagen debe pesar menos de 4 MB.",
     photoType: "Usa JPEG, PNG o WebP.",
+    startVoice: "Dictar",
+    stopVoice: "Detener dictado",
+    voiceUnsupported: "El dictado está disponible en Chrome o Edge.",
+    voiceBlocked: "Permite el micrófono para dictar.",
+    listening: "Escuchando…",
   },
   uk: {
     org: "Некомерційна організація",
@@ -98,6 +103,11 @@ const copy = {
     removePhoto: "Прибрати фото",
     photoTooLarge: "Зображення має бути до 4 МБ.",
     photoType: "Потрібен JPEG, PNG або WebP.",
+    startVoice: "Диктувати",
+    stopVoice: "Зупинити диктант",
+    voiceUnsupported: "Диктант доступний у Chrome або Edge.",
+    voiceBlocked: "Дозвольте мікрофон, щоб диктувати.",
+    listening: "Слухаю…",
   },
   en: {
     org: "Non-profit organisation",
@@ -146,6 +156,11 @@ const copy = {
     removePhoto: "Remove photo",
     photoTooLarge: "The image must be under 4 MB.",
     photoType: "Use JPEG, PNG or WebP.",
+    startVoice: "Dictate",
+    stopVoice: "Stop dictation",
+    voiceUnsupported: "Dictation is available in Chrome or Edge.",
+    voiceBlocked: "Allow the microphone to dictate.",
+    listening: "Listening…",
   },
 };
 
@@ -198,6 +213,22 @@ async function preparePhoto(file) {
   return { mimeType: "image/jpeg", dataUrl };
 }
 
+const speechLocale = { es: "es-ES", uk: "uk-UA", en: "en-US" };
+
+function getSpeechRecognition() {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function MicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
+    </svg>
+  );
+}
+
 function PartCard({ card, c }) {
   return (
     <article className="part-card">
@@ -241,7 +272,11 @@ export default function Home() {
   const [themeReady, setThemeReady] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState(null);
   const [photoError, setPhotoError] = useState("");
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
   const photoInputRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const dictationPrefixRef = useRef("");
 
   useEffect(() => {
     const savedLocale = getSaved("pe-lang", "es");
@@ -261,11 +296,37 @@ export default function Home() {
     localStorage.setItem("pe-theme", theme);
   }, [theme, themeReady]);
 
+  function stopDictation() {
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        /* already stopped */
+      }
+      recognitionRef.current = null;
+    }
+    setListening(false);
+  }
+
+  useEffect(() => () => stopDictation(), []);
+  useEffect(() => {
+    stopDictation();
+  }, [locale]);
+  useEffect(() => {
+    if (busy) stopDictation();
+  }, [busy]);
+
   const c = copy[locale] || copy.es;
 
   async function submitMessage(rawMessage, photo = null) {
     const message = rawMessage.trim();
     if ((!message && !photo) || busy) return;
+    stopDictation();
+    setVoiceError("");
     const history = messages
       .filter((x) => x.role === "user" || x.role === "assistant")
       .map((x) => ({
@@ -335,6 +396,52 @@ export default function Home() {
       setPhotoError("");
     } catch {
       setPhotoError(c.photoType);
+    }
+  }
+
+  function toggleDictation() {
+    if (busy) return;
+    if (listening) {
+      stopDictation();
+      return;
+    }
+    const SpeechRecognition = getSpeechRecognition();
+    if (!SpeechRecognition) {
+      setVoiceError(c.voiceUnsupported);
+      return;
+    }
+    setVoiceError("");
+    dictationPrefixRef.current = input.trim() ? `${input.trim()} ` : "";
+    const recognition = new SpeechRecognition();
+    recognition.lang = speechLocale[locale] || "es-ES";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let spoken = "";
+      for (let i = 0; i < event.results.length; i += 1) {
+        spoken += event.results[i][0].transcript;
+      }
+      setInput(`${dictationPrefixRef.current}${spoken}`.replace(/\s+/g, " ").trimStart());
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setVoiceError(c.voiceBlocked);
+      } else if (event.error === "audio-capture") {
+        setVoiceError(c.voiceBlocked);
+      }
+      stopDictation();
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setListening(false);
+    };
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setListening(true);
+    } catch {
+      setVoiceError(c.voiceUnsupported);
+      recognitionRef.current = null;
     }
   }
 
@@ -451,9 +558,11 @@ export default function Home() {
             <button
               type="button"
               onClick={() => {
+                stopDictation();
                 setMessages([]);
                 setPendingPhoto(null);
                 setPhotoError("");
+                setVoiceError("");
               }}
               className="new-chat"
             >
@@ -592,6 +701,12 @@ export default function Home() {
                 {photoError && (
                   <p className="photo-error" role="alert">{photoError}</p>
                 )}
+                {voiceError && (
+                  <p className="photo-error" role="alert">{voiceError}</p>
+                )}
+                {listening && !voiceError && (
+                  <p className="voice-status">{c.listening}</p>
+                )}
                 <div className="composer">
                   <input
                     ref={photoInputRef}
@@ -611,6 +726,17 @@ export default function Home() {
                   >
                     +
                   </button>
+                  <button
+                    type="button"
+                    className={`mic-btn${listening ? " listening" : ""}`}
+                    aria-label={listening ? c.stopVoice : c.startVoice}
+                    title={listening ? c.stopVoice : c.startVoice}
+                    aria-pressed={listening}
+                    disabled={busy}
+                    onClick={toggleDictation}
+                  >
+                    <MicIcon />
+                  </button>
                   <textarea
                     id="chat-input"
                     value={input}
@@ -621,7 +747,7 @@ export default function Home() {
                         e.currentTarget.form.requestSubmit();
                       }
                     }}
-                    placeholder={c.placeholder}
+                    placeholder={listening ? c.listening : c.placeholder}
                     rows={2}
                   />
                   <button type="submit" className="send-btn" disabled={busy || (!input.trim() && !pendingPhoto)}>
