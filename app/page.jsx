@@ -204,6 +204,7 @@ export default function Home() {
       .map((x) => ({
         role: x.role,
         text: x.role === "user" ? x.text : x.result?.answer || "",
+        intakeStep: x.role === "assistant" ? x.result?.intakeStep : undefined,
       }));
     setMessages((prev) => [...prev, { role: "user", text: message }]);
     setInput("");
