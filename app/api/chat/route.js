@@ -1,7 +1,7 @@
 // Тест колаборації
 import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
-import { PARTS_ASSISTANT_POLICY, SCOPE_REPLY, INVALID_VIN_REPLY, UNAVAILABLE_REPLY, obviousOutOfScope, invalidVinInMessage } from '../../../lib/partsAssistantPolicy';
+import { PARTS_ASSISTANT_POLICY, SCOPE_REPLY, INVALID_VIN_REPLY, UNAVAILABLE_REPLY, PHOTO_INVALID_REPLY, PHOTO_VISION_TASK, obviousOutOfScope, invalidVinInMessage } from '../../../lib/partsAssistantPolicy';
 import { getPartsIntake } from '../../../lib/partsIntake';
 
 export const runtime = 'nodejs';
@@ -66,6 +66,41 @@ function collectSources(response) {
   return [...sources.values()];
 }
 
+const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const maxImageBytes = 4 * 1024 * 1024;
+
+function parseImage(raw) {
+  if (raw == null || raw === '') return null;
+  let mimeType = '';
+  let data = '';
+  if (typeof raw === 'string') {
+    const match = raw.trim().match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+    if (!match) return { error: 'invalid' };
+    mimeType = match[1].toLowerCase();
+    data = match[2].replace(/\s/g, '');
+  } else if (typeof raw === 'object' && typeof raw.data === 'string') {
+    mimeType = String(raw.mimeType || '').toLowerCase();
+    data = raw.data.trim();
+    const match = data.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+    if (match) {
+      mimeType = match[1].toLowerCase();
+      data = match[2].replace(/\s/g, '');
+    } else {
+      data = data.replace(/\s/g, '');
+    }
+  } else {
+    return { error: 'invalid' };
+  }
+  if (!allowedImageTypes.has(mimeType) || !/^[A-Za-z0-9+/]+=*$/.test(data)) return { error: 'invalid' };
+  const bytes = Buffer.from(data, 'base64');
+  if (!bytes.length || bytes.length > maxImageBytes) return { error: 'invalid' };
+  return { mimeType, data };
+}
+
+function emptyPartsResult(answer) {
+  return { answer, followUp: '', oem: [], alternatives: [], cards: [], sources: [] };
+}
+
 export async function POST(request) {
   const requestId = randomUUID().slice(0, 8);
   const startedAt = Date.now();
@@ -77,19 +112,23 @@ export async function POST(request) {
     const message = typeof body.message === 'string' ? body.message.trim().slice(0, 2000) : '';
     locale = ['uk', 'es', 'en'].includes(body.locale) ? body.locale : 'uk';
     const history = Array.isArray(body.history) ? body.history.slice(-12).filter(x => x && ['user', 'assistant'].includes(x.role) && typeof x.text === 'string').map(x => ({ role: x.role, text: x.text.slice(0, 1000), intakeStep: x.role === 'assistant' && ['vin', 'registration', 'country', 'details'].includes(x.intakeStep) ? x.intakeStep : undefined })) : [];
-    if (!message) return Response.json({ error: 'Напишіть, яку запчастину потрібно знайти.' }, { status: 400 });
-    if (obviousOutOfScope(message)) {
+    const image = parseImage(body.image);
+    if (image?.error) return Response.json({ error: PHOTO_INVALID_REPLY[locale] }, { status: 400 });
+    if (!message && !image) return Response.json({ error: 'Напишіть, яку запчастину потрібно знайти.' }, { status: 400 });
+    if (message && obviousOutOfScope(message)) {
       log('out-of-scope request declined');
-      return Response.json({ answer: SCOPE_REPLY[locale], followUp: '', oem: [], alternatives: [], cards: [], sources: [] });
+      return Response.json(emptyPartsResult(SCOPE_REPLY[locale]));
     }
-    if (invalidVinInMessage(message)) {
+    if (message && invalidVinInMessage(message)) {
       log('invalid VIN format declined');
-      return Response.json({ answer: INVALID_VIN_REPLY[locale], followUp: '', oem: [], alternatives: [], cards: [], sources: [] });
+      return Response.json(emptyPartsResult(INVALID_VIN_REPLY[locale]));
     }
-    const intake = getPartsIntake({ message, history, locale });
-    if (intake) {
-      log('vehicle details requested', { step: intake.intakeStep });
-      return Response.json(intake);
+    if (!image) {
+      const intake = getPartsIntake({ message, history, locale });
+      if (intake) {
+        log('vehicle details requested', { step: intake.intakeStep });
+        return Response.json(intake);
+      }
     }
     if (!process.env.OPENAI_API_KEY) {
       log('missing API key');
@@ -97,6 +136,35 @@ export async function POST(request) {
     }
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0 });
+    if (image) {
+      stage = 'vision';
+      log('photo vision started', { locale, historyItems: history.length, mimeType: image.mimeType });
+      const vision = await client.responses.create({
+        model: 'gpt-6-luna',
+        reasoning: { effort: 'low' },
+        max_output_tokens: 1500,
+        text: { format: { type: 'json_schema', name: 'parts_result', strict: true, schema } },
+        instructions: `${PARTS_ASSISTANT_POLICY}\n\n${PHOTO_VISION_TASK}`,
+        input: [{
+          role: 'user',
+          content: [
+            { type: 'input_text', text: `Latest request: ${message || '(image only)'}\nPrevious conversation: ${JSON.stringify(history)}\nAnswer language: ${locale}.` },
+            { type: 'input_image', image_url: `data:${image.mimeType};base64,${image.data}`, detail: 'auto' },
+          ],
+        }],
+      }, { timeout: 60000 });
+      const parsed = JSON.parse(vision.output_text);
+      log('photo vision completed', { inputTokens: vision.usage?.input_tokens, outputTokens: vision.usage?.output_tokens, cachedTokens: vision.usage?.input_tokens_details?.cached_tokens });
+      return Response.json({
+        answer: parsed.answer,
+        followUp: parsed.followUp,
+        oem: parsed.oem,
+        alternatives: parsed.alternatives,
+        cards: [],
+        sources: [],
+      });
+    }
+
     stage = 'search-and-answer';
     log('search and answer started', { locale, historyItems: history.length });
     const result = await client.responses.create({

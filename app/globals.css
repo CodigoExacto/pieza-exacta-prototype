@@ -694,7 +694,28 @@ textarea:focus-visible {
 .composer textarea::placeholder {
   color: var(--subtle);
 }
-.composer button {
+.composer .attach-btn {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.composer .attach-btn:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.composer .attach-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.composer .send-btn {
   flex: none;
   padding: 11px 13px;
   border: 0;
@@ -704,12 +725,42 @@ textarea:focus-visible {
   font-size: 10px;
   font-weight: 800;
 }
-.composer button:hover:not(:disabled) {
+.composer .send-btn:hover:not(:disabled) {
   background: #0c36a8;
 }
-.composer button:disabled {
+.composer .send-btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+.photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.photo-preview img,
+.chat-photo {
+  display: block;
+  max-width: 180px;
+  max-height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.chat-photo {
+  margin-bottom: 8px;
+}
+.photo-preview button {
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.photo-error {
+  margin: 0 0 8px;
+  color: #b42318;
+  font-size: 10px;
 }
 .composer-wrap > p {
   margin: 8px 0 0;
@@ -886,7 +937,7 @@ textarea:focus-visible {
   .composer-wrap {
     padding: 12px;
   }
-  .composer button {
+  .composer .send-btn {
     max-width: 90px;
     white-space: normal;
   }

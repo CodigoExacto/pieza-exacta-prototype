@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const copy = {
   es: {
@@ -46,6 +46,10 @@ const copy = {
     vinConfirm: "Confirmar VIN",
     vinReject: "Rechazar",
     vinInvalid: "El VIN debe tener 17 caracteres y no incluir I, O ni Q.",
+    attachPhoto: "Adjuntar foto",
+    removePhoto: "Quitar foto",
+    photoTooLarge: "La imagen debe pesar menos de 4 MB.",
+    photoType: "Usa JPEG, PNG o WebP.",
   },
   uk: {
     org: "Некомерційна організація",
@@ -90,6 +94,10 @@ const copy = {
     vinConfirm: "Підтвердити",
     vinReject: "Відхилити",
     vinInvalid: "VIN має містити 17 символів без літер I, O та Q.",
+    attachPhoto: "Додати фото",
+    removePhoto: "Прибрати фото",
+    photoTooLarge: "Зображення має бути до 4 МБ.",
+    photoType: "Потрібен JPEG, PNG або WebP.",
   },
   en: {
     org: "Non-profit organisation",
@@ -134,6 +142,10 @@ const copy = {
     vinConfirm: "Confirm VIN",
     vinReject: "Decline",
     vinInvalid: "VIN must contain 17 characters and exclude I, O and Q.",
+    attachPhoto: "Attach photo",
+    removePhoto: "Remove photo",
+    photoTooLarge: "The image must be under 4 MB.",
+    photoType: "Use JPEG, PNG or WebP.",
   },
 };
 
@@ -145,6 +157,45 @@ function getSaved(key, fallback) {
   } catch {
     return value;
   }
+}
+
+const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadHtmlImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("image"));
+    image.src = src;
+  });
+}
+
+async function preparePhoto(file) {
+  if (!allowedPhotoTypes.has(file.type)) return { error: "type" };
+  if (file.size > 4 * 1024 * 1024) return { error: "size" };
+  const original = await fileToDataUrl(file);
+  const image = await loadHtmlImage(original);
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) return { mimeType: file.type, dataUrl: original };
+  context.drawImage(image, 0, 0, width, height);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+  return { mimeType: "image/jpeg", dataUrl };
 }
 
 function PartCard({ card, c }) {
@@ -188,6 +239,9 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState("light");
   const [themeReady, setThemeReady] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState(null);
+  const [photoError, setPhotoError] = useState("");
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     const savedLocale = getSaved("pe-lang", "es");
@@ -209,9 +263,9 @@ export default function Home() {
 
   const c = copy[locale] || copy.es;
 
-  async function submitMessage(rawMessage) {
+  async function submitMessage(rawMessage, photo = null) {
     const message = rawMessage.trim();
-    if (!message || busy) return;
+    if ((!message && !photo) || busy) return;
     const history = messages
       .filter((x) => x.role === "user" || x.role === "assistant")
       .map((x) => ({
@@ -219,10 +273,13 @@ export default function Home() {
         text: x.role === "user" ? x.text : x.result?.answer || "",
         intakeStep: x.role === "assistant" ? x.result?.intakeStep : undefined,
       }));
-    setMessages((prev) => [...prev, { role: "user", text: message }]);
+    const historyText = message || (locale === "uk" ? "Фото" : locale === "es" ? "Foto" : "Photo");
+    setMessages((prev) => [...prev, { role: "user", text: historyText, imageUrl: photo?.dataUrl }]);
     setInput("");
     setVinInput("");
     setVinError("");
+    setPendingPhoto(null);
+    setPhotoError("");
     setBusy(true);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 100000);
@@ -231,17 +288,22 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ message, history, locale }),
+        body: JSON.stringify({
+          message,
+          history,
+          locale,
+          ...(photo ? { image: photo.dataUrl } : {}),
+        }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error("Request unavailable");
+      if (!response.ok) throw new Error(data.error || "Request unavailable");
       setMessages((prev) => [...prev, { role: "assistant", result: data }]);
     } catch (error) {
       setMessages((prev) => [
         ...prev,
         {
           role: "error",
-          text: c.timeout,
+          text: error?.name === "AbortError" ? c.timeout : error?.message || c.timeout,
         },
       ]);
     } finally {
@@ -252,7 +314,28 @@ export default function Home() {
 
   function send(event) {
     event.preventDefault();
-    submitMessage(input);
+    submitMessage(input, pendingPhoto);
+  }
+
+  async function onPhotoSelected(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const prepared = await preparePhoto(file);
+      if (prepared.error === "type") {
+        setPhotoError(c.photoType);
+        return;
+      }
+      if (prepared.error === "size") {
+        setPhotoError(c.photoTooLarge);
+        return;
+      }
+      setPendingPhoto(prepared);
+      setPhotoError("");
+    } catch {
+      setPhotoError(c.photoType);
+    }
   }
 
   function confirmVin(event) {
@@ -367,7 +450,11 @@ export default function Home() {
             </div>
             <button
               type="button"
-              onClick={() => setMessages([])}
+              onClick={() => {
+                setMessages([]);
+                setPendingPhoto(null);
+                setPhotoError("");
+              }}
               className="new-chat"
             >
               ＋ {c.newChat}
@@ -403,6 +490,9 @@ export default function Home() {
                   {messages.map((item, index) =>
                     item.role === "user" ? (
                       <div className="message user" key={index}>
+                        {item.imageUrl && (
+                          <img className="chat-photo" src={item.imageUrl} alt="" />
+                        )}
                         {item.text}
                       </div>
                     ) : item.role === "error" ? (
@@ -491,7 +581,36 @@ export default function Home() {
               </div>
               <form className="composer-wrap" onSubmit={send}>
                 <label htmlFor="chat-input">{c.inputLabel}</label>
+                {pendingPhoto && (
+                  <div className="photo-preview">
+                    <img src={pendingPhoto.dataUrl} alt="" />
+                    <button type="button" onClick={() => setPendingPhoto(null)}>
+                      {c.removePhoto}
+                    </button>
+                  </div>
+                )}
+                {photoError && (
+                  <p className="photo-error" role="alert">{photoError}</p>
+                )}
                 <div className="composer">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="visually-hidden"
+                    onChange={onPhotoSelected}
+                    tabIndex={-1}
+                  />
+                  <button
+                    type="button"
+                    className="attach-btn"
+                    aria-label={c.attachPhoto}
+                    title={c.attachPhoto}
+                    disabled={busy}
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    +
+                  </button>
                   <textarea
                     id="chat-input"
                     value={input}
@@ -505,7 +624,7 @@ export default function Home() {
                     placeholder={c.placeholder}
                     rows={2}
                   />
-                  <button type="submit" disabled={busy || !input.trim()}>
+                  <button type="submit" className="send-btn" disabled={busy || (!input.trim() && !pendingPhoto)}>
                     {c.send} <span aria-hidden="true">↗</span>
                   </button>
                 </div>
