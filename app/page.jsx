@@ -42,6 +42,10 @@ const copy = {
     privacy: "Política de privacidad",
     darkTheme: "Activar tema oscuro",
     lightTheme: "Activar tema claro",
+    vinPlaceholder: "Introduce el VIN (17 caracteres)",
+    vinConfirm: "Confirmar VIN",
+    vinReject: "Rechazar",
+    vinInvalid: "El VIN debe tener 17 caracteres y no incluir I, O ni Q.",
   },
   uk: {
     org: "Некомерційна організація",
@@ -82,6 +86,10 @@ const copy = {
     privacy: "Політика конфіденційності",
     darkTheme: "Увімкнути темну тему",
     lightTheme: "Увімкнути світлу тему",
+    vinPlaceholder: "Введіть VIN (17 символів)",
+    vinConfirm: "Підтвердити",
+    vinReject: "Відхилити",
+    vinInvalid: "VIN має містити 17 символів без літер I, O та Q.",
   },
   en: {
     org: "Non-profit organisation",
@@ -122,6 +130,10 @@ const copy = {
     privacy: "Privacy policy",
     darkTheme: "Switch to dark theme",
     lightTheme: "Switch to light theme",
+    vinPlaceholder: "Enter VIN (17 characters)",
+    vinConfirm: "Confirm VIN",
+    vinReject: "Decline",
+    vinInvalid: "VIN must contain 17 characters and exclude I, O and Q.",
   },
 };
 
@@ -171,6 +183,8 @@ export default function Home() {
   const [locale, setLocale] = useState("es");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [vinInput, setVinInput] = useState("");
+  const [vinError, setVinError] = useState("");
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState("light");
   const [themeReady, setThemeReady] = useState(false);
@@ -195,9 +209,8 @@ export default function Home() {
 
   const c = copy[locale] || copy.es;
 
-  async function send(event) {
-    event.preventDefault();
-    const message = input.trim();
+  async function submitMessage(rawMessage) {
+    const message = rawMessage.trim();
     if (!message || busy) return;
     const history = messages
       .filter((x) => x.role === "user" || x.role === "assistant")
@@ -208,6 +221,8 @@ export default function Home() {
       }));
     setMessages((prev) => [...prev, { role: "user", text: message }]);
     setInput("");
+    setVinInput("");
+    setVinError("");
     setBusy(true);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 100000);
@@ -233,6 +248,26 @@ export default function Home() {
       clearTimeout(timeout);
       setBusy(false);
     }
+  }
+
+  function send(event) {
+    event.preventDefault();
+    submitMessage(input);
+  }
+
+  function confirmVin(event) {
+    event.preventDefault();
+    const value = vinInput.trim().toUpperCase();
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(value)) {
+      setVinError(c.vinInvalid);
+      return;
+    }
+    submitMessage(value);
+  }
+
+  function rejectVin() {
+    const refusal = locale === "uk" ? "Не хочу надавати VIN" : locale === "es" ? "Prefiero no facilitar el VIN" : "I prefer not to provide the VIN";
+    submitMessage(refusal);
   }
 
   return (
@@ -379,6 +414,32 @@ export default function Home() {
                         <div className="answer-mark">PE</div>
                         <div className="response-body">
                           <p>{item.result.answer}</p>
+                          {item.result.intakeStep === "vin" && index === messages.length - 1 && (
+                            <form className="vin-form" onSubmit={confirmVin}>
+                              <label className="visually-hidden" htmlFor="vin-input">{c.vinPlaceholder}</label>
+                              <input
+                                id="vin-input"
+                                type="text"
+                                value={vinInput}
+                                onChange={(event) => {
+                                  setVinInput(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 17));
+                                  setVinError("");
+                                }}
+                                placeholder={c.vinPlaceholder}
+                                minLength={17}
+                                maxLength={17}
+                                autoComplete="off"
+                                aria-invalid={Boolean(vinError)}
+                                aria-describedby={vinError ? "vin-error" : undefined}
+                                disabled={busy}
+                              />
+                              {vinError && <span id="vin-error" className="vin-error" role="alert">{vinError}</span>}
+                              <div className="vin-actions">
+                                <button type="submit" disabled={busy}>{c.vinConfirm}</button>
+                                <button type="button" className="vin-reject" onClick={rejectVin} disabled={busy}>{c.vinReject}</button>
+                              </div>
+                            </form>
+                          )}
                           {item.result.followUp && (
                             <p className="follow-up">{item.result.followUp}</p>
                           )}
