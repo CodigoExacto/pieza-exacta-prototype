@@ -28,7 +28,7 @@ const copy = {
     inputLabel: "Tu consulta",
     placeholder: "Escribe tu pregunta sobre una pieza o un número OEM…",
     send: "Buscar pieza",
-    sourceLink: "Consultar fuente",
+    sourceLink: "Ver en Avto.pro",
     loading: "Procesando tu consulta",
     sources: "Fuentes consultadas",
     original: "OEM",
@@ -96,7 +96,7 @@ const copy = {
     inputLabel: "Ваш запит",
     placeholder: "Запитайте про деталь або номер OEM…",
     send: "Знайти деталь",
-    sourceLink: "Переглянути джерело",
+    sourceLink: "Відкрити на Avto.pro",
     loading: "Обробляю ваш запит",
     sources: "Переглянуті джерела",
     original: "OEM",
@@ -164,7 +164,7 @@ const copy = {
     inputLabel: "Your inquiry",
     placeholder: "Ask about a part or OEM number…",
     send: "Find part",
-    sourceLink: "View source",
+    sourceLink: "View on Avto.pro",
     loading: "Processing your request",
     sources: "Sources consulted",
     original: "OEM",
@@ -277,7 +277,8 @@ function MicIcon() {
 
 function PartCard({ card, c }) {
   return (
-    <article className="part-card">
+    <a className="part-card" href={card.url} target="_blank" rel="noopener noreferrer">
+      {card.imageUrl && <img className="part-image" src={card.imageUrl} alt={card.title} loading="lazy" />}
       <div className="part-card-top">
         <span className="part-brand">{card.brand || "Avto.pro"}</span>
         <span className={`fitment ${card.fitment}`}>
@@ -286,24 +287,27 @@ function PartCard({ card, c }) {
       </div>
       <h3>{card.title}</h3>
       <div className="part-code">{card.partNumber}</div>
+      {card.vehicle && <div className="card-detail">{card.vehicle}</div>}
       {card.oem?.length > 0 && (
         <div className="part-meta">
           <b>{c.original}</b>
           <span>{card.oem.join(" · ")}</span>
         </div>
       )}
+      {(card.seller || card.availability || card.city || card.price || card.oldPrice) && (
+        <div className="offer-meta">
+          {card.seller && <span>{card.seller}</span>}
+          {(card.availability || card.city) && <span>{[card.availability, card.city].filter(Boolean).join(" · ")}</span>}
+          {(card.price || card.oldPrice) && <span className="offer-price">{card.oldPrice && <del>{card.oldPrice}{card.currency ? ` ${card.currency}` : ""}</del>}{card.price && <strong>{card.price}{card.currency ? ` ${card.currency}` : ""}</strong>}</span>}
+        </div>
+      )}
       <p className="evidence">{card.evidence}</p>
       <div className="part-card-bottom">
-        <a
-          className="source-button"
-          href={card.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <span className="source-button">
           {c.sourceLink} <span aria-hidden="true">↗</span>
-        </a>
+        </span>
       </div>
-    </article>
+    </a>
   );
 }
 
