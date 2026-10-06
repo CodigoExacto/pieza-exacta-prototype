@@ -75,10 +75,29 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5E2E955F2BCA4D1F9D75FF0840A4E8E7 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2D9FC425DF9A47CE9F0198800893B4DA }}
 
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+      - name: Stop app and set startup
+        uses: azure/cli@v2
         with:
-          app-name: 'prototypeAihelper'
-          slot-name: 'Production'
-          package: site
+          inlineScript: |
+            az webapp stop --name prototypeAihelper --resource-group rg-i-grin
+            az webapp config appsettings set --name prototypeAihelper --resource-group rg-i-grin --output none --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false ENABLE_ORYX_BUILD=false
+            az webapp config set --name prototypeAihelper --resource-group rg-i-grin --startup-file "node server.js"
+
+      - name: Zip standalone package
+        run: |
+          cd site
+          zip -r ../site.zip .
+          ls -lh ../site.zip
+
+      - name: Deploy zip without waiting on site health
+        timeout-minutes: 8
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az webapp deploy --resource-group rg-i-grin --name prototypeAihelper --src-path site.zip --type zip --async false --clean true --track-status false
+
+      - name: Start app
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az webapp start --name prototypeAihelper --resource-group rg-i-grin
