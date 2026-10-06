@@ -62,6 +62,15 @@ const copy = {
     voiceBlocked: "Permite el micrófono para dictar.",
     listening: "Escuchando…",
     generateReport: "Generar informe",
+    expertTitle: "Revisión por un experto",
+    expertDescription: "Si quieres, podemos enviar esta consulta a un experto para que revise el vehículo y la pieza.",
+    expertPhone: "Tu número de WhatsApp",
+    expertPhonePlaceholder: "+34 600 000 000",
+    expertConsent: "Acepto compartir mi número y los datos de esta consulta para su revisión por un experto.",
+    expertSubmit: "Enviar solicitud",
+    expertPhoneInvalid: "Introduce un número de teléfono.",
+    expertConsentRequired: "Confirma que aceptas compartir estos datos.",
+    expertAccepted: "Solicitud aceptada para su revisión. Te enviaremos el resultado al número indicado.",
   },
   uk: {
     org: "Некомерційна організація",
@@ -121,6 +130,15 @@ const copy = {
     voiceBlocked: "Дозвольте мікрофон, щоб диктувати.",
     listening: "Слухаю…",
     generateReport: "Сформувати звіт",
+    expertTitle: "Перевірка експертом",
+    expertDescription: "За бажанням передамо цей запит експерту, щоб він перевірив автомобіль і запчастину.",
+    expertPhone: "Ваш номер WhatsApp",
+    expertPhonePlaceholder: "+34 600 000 000",
+    expertConsent: "Погоджуюся передати експерту мій номер і дані цього запиту для перевірки.",
+    expertSubmit: "Надіслати запит",
+    expertPhoneInvalid: "Введіть номер телефону.",
+    expertConsentRequired: "Підтвердьте згоду на передавання цих даних.",
+    expertAccepted: "Запит прийнято на обробку. Результат надішлють на вказаний номер.",
   },
   en: {
     org: "Non-profit organisation",
@@ -180,6 +198,15 @@ const copy = {
     voiceBlocked: "Allow the microphone to dictate.",
     listening: "Listening…",
     generateReport: "Generate report",
+    expertTitle: "Expert review",
+    expertDescription: "If you like, we can send this request to an expert to review the vehicle and part.",
+    expertPhone: "Your WhatsApp number",
+    expertPhonePlaceholder: "+34 600 000 000",
+    expertConsent: "I agree to share my phone number and request details for expert review.",
+    expertSubmit: "Submit request",
+    expertPhoneInvalid: "Enter a phone number.",
+    expertConsentRequired: "Confirm that you agree to share these details.",
+    expertAccepted: "Request accepted for review. The result will be sent to the number provided.",
   },
 };
 
@@ -280,6 +307,32 @@ function PartCard({ card, c }) {
   );
 }
 
+function ExpertHandoffForm({ c, phone, setPhone, consent, setConsent, error, onSubmit }) {
+  return (
+    <form className="expert-form" onSubmit={onSubmit}>
+      <h3>{c.expertTitle}</h3>
+      <p>{c.expertDescription}</p>
+      <label className="expert-phone-label" htmlFor="expert-phone">{c.expertPhone}</label>
+      <input
+        id="expert-phone"
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        value={phone}
+        onChange={(event) => setPhone(event.target.value)}
+        placeholder={c.expertPhonePlaceholder}
+        aria-invalid={Boolean(error)}
+      />
+      <label className="expert-consent">
+        <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+        <span>{c.expertConsent}</span>
+      </label>
+      {error && <span className="vin-error" role="alert">{error}</span>}
+      <button type="submit">{c.expertSubmit}</button>
+    </form>
+  );
+}
+
 export default function Home() {
   const [locale, setLocale] = useState("es");
   const [messages, setMessages] = useState([]);
@@ -295,6 +348,10 @@ export default function Home() {
   const [photoError, setPhotoError] = useState("");
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
+  const [expertPhone, setExpertPhone] = useState("");
+  const [expertConsent, setExpertConsent] = useState(false);
+  const [expertError, setExpertError] = useState("");
+  const [submittedExpertRequests, setSubmittedExpertRequests] = useState(() => new Set());
   const photoInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const dictationPrefixRef = useRef("");
@@ -345,6 +402,10 @@ export default function Home() {
     setPendingPhoto(null);
     setPhotoError("");
     setVoiceError("");
+    setExpertPhone("");
+    setExpertConsent(false);
+    setExpertError("");
+    setSubmittedExpertRequests(new Set());
   }, [locale]);
   useEffect(() => {
     if (busy) stopDictation();
@@ -357,6 +418,7 @@ export default function Home() {
     if ((!message && !photo) || busy) return;
     stopDictation();
     setVoiceError("");
+    setExpertError("");
     const history = messages
       .filter((x) => x.role === "user" || x.role === "assistant")
       .map((x) => ({
@@ -389,6 +451,10 @@ export default function Home() {
         }),
       });
       const data = await response.json();
+      if (!response.ok && data.expertHandoff) {
+        setMessages((prev) => [...prev, { role: "assistant", result: { answer: data.error || c.timeout, expertHandoff: true } }]);
+        return;
+      }
       if (!response.ok) throw new Error(data.error || "Request unavailable");
       setMessages((prev) => [...prev, { role: "assistant", result: data }]);
     } catch (error) {
@@ -396,7 +462,8 @@ export default function Home() {
         ...prev,
         {
           role: "error",
-          text: error?.name === "AbortError" ? c.timeout : error?.message || c.timeout,
+          text: c.timeout,
+          expertHandoff: true,
         },
       ]);
     } finally {
@@ -505,6 +572,24 @@ export default function Home() {
   function rejectPlate() {
     const refusal = locale === "uk" ? "Не хочу надавати номер реєстрації" : locale === "es" ? "Prefiero no facilitar la matrícula" : "I prefer not to provide the registration plate";
     submitMessage(refusal);
+  }
+
+  function requestExpertReview(event, requestIndex) {
+    event.preventDefault();
+    setExpertError("");
+    const phone = expertPhone.trim();
+    if (!phone) {
+      setExpertError(c.expertPhoneInvalid);
+      return;
+    }
+    if (!expertConsent) {
+      setExpertError(c.expertConsentRequired);
+      return;
+    }
+    setSubmittedExpertRequests((current) => new Set(current).add(requestIndex));
+    setMessages((current) => [...current, { role: "notice", text: c.expertAccepted }]);
+    setExpertPhone("");
+    setExpertConsent(false);
   }
 
   return (
@@ -626,6 +711,10 @@ export default function Home() {
                   setPendingPhoto(null);
                   setPhotoError("");
                   setVoiceError("");
+                  setExpertPhone("");
+                  setExpertConsent(false);
+                  setExpertError("");
+                  setSubmittedExpertRequests(new Set());
                 }}
               >
                 ＋ {c.newChat}
@@ -667,9 +756,30 @@ export default function Home() {
                         )}
                         {item.text}
                       </div>
+                    ) : item.role === "notice" ? (
+                      <div className="assistant-response" key={index}>
+                        <div className="answer-mark">PE</div>
+                        <div className="response-body">
+                          <p>{item.text}</p>
+                        </div>
+                      </div>
                     ) : item.role === "error" ? (
-                      <div className="message error" key={index}>
-                        {item.text}
+                      <div className="assistant-response" key={index}>
+                        <div className="answer-mark">PE</div>
+                        <div className="response-body">
+                          <p>{item.text}</p>
+                          {item.expertHandoff && !submittedExpertRequests.has(index) && (
+                            <ExpertHandoffForm
+                              c={c}
+                              phone={expertPhone}
+                              setPhone={setExpertPhone}
+                              consent={expertConsent}
+                              setConsent={setExpertConsent}
+                              error={expertError}
+                              onSubmit={(event) => requestExpertReview(event, index)}
+                            />
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="assistant-response" key={index}>
@@ -753,6 +863,17 @@ export default function Home() {
                           {item.result.cards?.map((card, i) => (
                             <PartCard key={i} card={card} c={c} />
                           ))}
+                          {item.result.expertHandoff && !submittedExpertRequests.has(index) && (
+                            <ExpertHandoffForm
+                              c={c}
+                              phone={expertPhone}
+                              setPhone={setExpertPhone}
+                              consent={expertConsent}
+                              setConsent={setExpertConsent}
+                              error={expertError}
+                              onSubmit={(event) => requestExpertReview(event, index)}
+                            />
+                          )}
                         </div>
                       </div>
                     ),

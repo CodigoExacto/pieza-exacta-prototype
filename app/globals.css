@@ -608,6 +608,64 @@ textarea:focus-visible {
   color: var(--blue);
   font-weight: 700;
 }
+.expert-form {
+  display: grid;
+  gap: 9px;
+  max-width: 390px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.expert-form h3,
+.expert-form p {
+  margin: 0;
+}
+.expert-form h3 {
+  color: var(--ink);
+  font-size: 13px;
+}
+.expert-form p,
+.expert-phone-label,
+.expert-consent,
+.expert-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.expert-form input[type="tel"] {
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+.expert-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.expert-consent input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--blue);
+}
+.expert-form > button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
 .meta-line {
   display: flex;
   gap: 8px;
