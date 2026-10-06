@@ -66,6 +66,29 @@ function collectSources(response) {
   return [...sources.values()];
 }
 
+function cleanModelText(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/(?:&#(?:32|x20);|&nbsp;)/gi, ' ')
+    .replace(/\s*\(\s*\[[^\]]+\]\(https?:\/\/[^)]*\)\s*\)/gi, '')
+    .replace(/\[[^\]]+\]\(https?:\/\/[^)]*\)/gi, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\(\s*\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;!?])/g, '$1')
+    .trim();
+}
+
+function avoidVinOptOutPrompt(text, vinWasProvided, locale) {
+  if (!vinWasProvided || !/(?:не хоч(?:ете|у)|не бажаєте|не нада(?:єте|вати)).{0,45}VIN|(?:if you (?:do not|don't|prefer not to)|if you(?:'d| would) rather not).{0,45}VIN|(?:si no quieres|si prefieres no|si no deseas).{0,45}VIN/i.test(text)) return text;
+  const nextStep = {
+    uk: 'VIN отримано, але не вдалося надійно підтвердити точну комплектацію. Якщо маєте іспанський номерний знак, надішліть його для альтернативної перевірки. Якщо не хочете надавати номер, вкажіть марку, модель, рік випуску та дані двигуна.',
+    es: 'He recibido el VIN, pero no he podido confirmar con fiabilidad la configuración exacta. Si tienes una matrícula española, envíala para comprobar el vehículo por otra vía. Si prefieres no facilitarla, indica la marca, el modelo, el año y los datos del motor.',
+    en: 'I received the VIN, but could not reliably confirm the exact vehicle configuration. If you have a Spanish registration plate, send it so I can check the vehicle another way. If you prefer not to share the plate, provide the make, model, year and engine details.',
+  };
+  return nextStep[locale] || nextStep.uk;
+}
+
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxImageBytes = 4 * 1024 * 1024;
 
@@ -168,8 +191,8 @@ export async function POST(request) {
         webSearchCalls: 0,
       });
       return Response.json({
-        answer: parsed.answer,
-        followUp: parsed.followUp,
+        answer: cleanModelText(parsed.answer),
+        followUp: cleanModelText(parsed.followUp),
         oem: parsed.oem,
         alternatives: parsed.alternatives,
         cards: [],
@@ -193,6 +216,7 @@ export async function POST(request) {
     stage = 'validate-result';
     const sources = collectSources(result);
     const parsed = JSON.parse(result.output_text);
+    const vinWasProvided = /\b[A-HJ-NPR-Z0-9]{17}\b/i.test([...history.filter(item => item.role === 'user').map(item => item.text), message].join(' '));
     const validUrls = new Set(sources.map(x => x.url));
     const cards = parsed.cards.filter(card => {
       const url = cleanUrl(card.url);
@@ -214,7 +238,13 @@ export async function POST(request) {
       totalTokens: usage.total_tokens ?? null,
     });
     log('sources used', { count: sources.length, sources: sources.slice(0, 12).map(({ title, url }) => ({ title, url })) });
-    return Response.json({ answer: parsed.answer, followUp: parsed.followUp, oem: parsed.oem, alternatives: parsed.alternatives, cards });
+    return Response.json({
+      answer: avoidVinOptOutPrompt(cleanModelText(parsed.answer), vinWasProvided, locale),
+      followUp: avoidVinOptOutPrompt(cleanModelText(parsed.followUp), vinWasProvided, locale),
+      oem: parsed.oem,
+      alternatives: parsed.alternatives,
+      cards,
+    });
   } catch (error) {
     const isTimeout = error?.name === 'APIConnectionTimeoutError' || error?.name === 'AbortError';
     console.error(`[chat:${requestId}] request failed`, { stage, elapsedMs: Date.now() - startedAt, name: error?.name, status: error?.status, code: error?.code, message: error?.message });
