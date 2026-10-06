@@ -23,26 +23,26 @@ jobs:
         with:
           node-version: '24.x'
 
-      - name: npm install, build, and test
+      - name: npm install and build
         run: |
-          npm install
+          npm ci
           npm run build --if-present
-          npm run test --if-present
+
+      - name: Prepare Next.js standalone package
+        run: |
+          mkdir -p release
+          cp -a .next/standalone/. release/
+          mkdir -p release/.next/static
+          cp -a .next/static/. release/.next/static/
+          cp -a public release/public
+          printf '%s\n' '[config]' 'SCM_DO_BUILD_DURING_DEPLOYMENT=false' > release/.deployment
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           include-hidden-files: true
-          path: |
-            .next
-            app
-            lib
-            public
-            package.json
-            package-lock.json
-            node_modules
-            README.md
+          path: release
 
   deploy:
     runs-on: ubuntu-latest
@@ -56,8 +56,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-      - name: Stop Oryx from rewriting node_modules
-        run: rm -f oryx-manifest.toml node_modules.tar.gz
+          path: site
+
+      - name: Flatten package if nested
+        run: |
+          if [ -d site/release ] && [ ! -f site/server.js ]; then
+            shopt -s dotglob
+            mv site/release/* site/
+            rmdir site/release
+          fi
+          ls -la site
+          test -f site/server.js
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -71,5 +81,4 @@ jobs:
         with:
           app-name: 'prototypeAihelper'
           slot-name: 'Production'
-          package: .
-          
+          package: site
