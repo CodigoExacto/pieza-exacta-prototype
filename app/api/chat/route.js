@@ -154,7 +154,19 @@ export async function POST(request) {
         }],
       }, { timeout: 60000 });
       const parsed = JSON.parse(vision.output_text);
-      log('photo vision completed', { inputTokens: vision.usage?.input_tokens, outputTokens: vision.usage?.output_tokens, cachedTokens: vision.usage?.input_tokens_details?.cached_tokens });
+      const usage = vision.usage || {};
+      const cachedInputTokens = usage.input_tokens_details?.cached_tokens ?? 0;
+      const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
+      log('photo vision completed', {
+        inputTokens: usage.input_tokens ?? null,
+        cachedInputTokens,
+        uncachedInputTokens: usage.input_tokens == null ? null : usage.input_tokens - cachedInputTokens,
+        outputTokens: usage.output_tokens ?? null,
+        reasoningTokens,
+        nonReasoningOutputTokens: usage.output_tokens == null ? null : usage.output_tokens - reasoningTokens,
+        totalTokens: usage.total_tokens ?? null,
+        webSearchCalls: 0,
+      });
       return Response.json({
         answer: parsed.answer,
         followUp: parsed.followUp,
@@ -186,8 +198,23 @@ export async function POST(request) {
       const url = cleanUrl(card.url);
       return url && validUrls.has(url);
     }).slice(0, 5).map(card => ({ ...card, url: cleanUrl(card.url), fitment: card.fitment === 'verified' ? 'possible' : card.fitment }));
-    log('request completed', { cards: cards.length, sources: sources.length, inputTokens: result.usage?.input_tokens, outputTokens: result.usage?.output_tokens, cachedTokens: result.usage?.input_tokens_details?.cached_tokens });
-    return Response.json({ answer: parsed.answer, followUp: parsed.followUp, oem: parsed.oem, alternatives: parsed.alternatives, cards, sources: sources.slice(0, 12) });
+    const usage = result.usage || {};
+    const cachedInputTokens = usage.input_tokens_details?.cached_tokens ?? 0;
+    const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
+    const webSearchCalls = (result.output || []).filter(item => item.type === 'web_search_call').length;
+    log('request completed', {
+      cards: cards.length,
+      webSearchCalls,
+      inputTokens: usage.input_tokens ?? null,
+      cachedInputTokens,
+      uncachedInputTokens: usage.input_tokens == null ? null : usage.input_tokens - cachedInputTokens,
+      outputTokens: usage.output_tokens ?? null,
+      reasoningTokens,
+      nonReasoningOutputTokens: usage.output_tokens == null ? null : usage.output_tokens - reasoningTokens,
+      totalTokens: usage.total_tokens ?? null,
+    });
+    log('sources used', { count: sources.length, sources: sources.slice(0, 12).map(({ title, url }) => ({ title, url })) });
+    return Response.json({ answer: parsed.answer, followUp: parsed.followUp, oem: parsed.oem, alternatives: parsed.alternatives, cards });
   } catch (error) {
     const isTimeout = error?.name === 'APIConnectionTimeoutError' || error?.name === 'AbortError';
     console.error(`[chat:${requestId}] request failed`, { stage, elapsedMs: Date.now() - startedAt, name: error?.name, status: error?.status, code: error?.code, message: error?.message });

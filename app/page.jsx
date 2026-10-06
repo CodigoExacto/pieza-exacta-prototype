@@ -47,6 +47,11 @@ const copy = {
     vinConfirm: "Confirmar VIN",
     vinReject: "Rechazar",
     vinInvalid: "El VIN debe tener 17 caracteres y no incluir I, O ni Q.",
+    platePlaceholder: "1234 ABC",
+    plateLabel: "Matrícula española",
+    plateConfirm: "Confirmar matrícula",
+    plateReject: "Rechazar",
+    plateInvalid: "Introduce una matrícula española válida, por ejemplo 1234 ABC.",
     attachPhoto: "Adjuntar foto",
     removePhoto: "Quitar foto",
     photoTooLarge: "La imagen debe pesar menos de 4 MB.",
@@ -101,6 +106,11 @@ const copy = {
     vinConfirm: "Підтвердити",
     vinReject: "Відхилити",
     vinInvalid: "VIN має містити 17 символів без літер I, O та Q.",
+    platePlaceholder: "1234 ABC",
+    plateLabel: "Іспанський номерний знак",
+    plateConfirm: "Підтвердити",
+    plateReject: "Відхилити",
+    plateInvalid: "Введіть коректний номер іспанського зразка, наприклад 1234 ABC.",
     attachPhoto: "Додати фото",
     removePhoto: "Прибрати фото",
     photoTooLarge: "Зображення має бути до 4 МБ.",
@@ -155,6 +165,11 @@ const copy = {
     vinConfirm: "Confirm VIN",
     vinReject: "Decline",
     vinInvalid: "VIN must contain 17 characters and exclude I, O and Q.",
+    platePlaceholder: "1234 ABC",
+    plateLabel: "Spanish registration plate",
+    plateConfirm: "Confirm plate",
+    plateReject: "Decline",
+    plateInvalid: "Enter a valid Spanish plate, for example 1234 ABC.",
     attachPhoto: "Attach photo",
     removePhoto: "Remove photo",
     photoTooLarge: "The image must be under 4 MB.",
@@ -271,6 +286,8 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [vinInput, setVinInput] = useState("");
   const [vinError, setVinError] = useState("");
+  const [plateInput, setPlateInput] = useState("");
+  const [plateError, setPlateError] = useState("");
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState("light");
   const [themeReady, setThemeReady] = useState(false);
@@ -319,6 +336,15 @@ export default function Home() {
   useEffect(() => () => stopDictation(), []);
   useEffect(() => {
     stopDictation();
+    setMessages([]);
+    setInput("");
+    setVinInput("");
+    setVinError("");
+    setPlateInput("");
+    setPlateError("");
+    setPendingPhoto(null);
+    setPhotoError("");
+    setVoiceError("");
   }, [locale]);
   useEffect(() => {
     if (busy) stopDictation();
@@ -343,6 +369,8 @@ export default function Home() {
     setInput("");
     setVinInput("");
     setVinError("");
+    setPlateInput("");
+    setPlateError("");
     setPendingPhoto(null);
     setPhotoError("");
     setBusy(true);
@@ -464,6 +492,21 @@ export default function Home() {
     submitMessage(refusal);
   }
 
+  function confirmPlate(event) {
+    event.preventDefault();
+    const value = plateInput.toUpperCase();
+    if (!/^\d{4}[BCDFGHJKLMNPRSTVWXYZ]{3}$/.test(value)) {
+      setPlateError(c.plateInvalid);
+      return;
+    }
+    submitMessage(`${value} ES`);
+  }
+
+  function rejectPlate() {
+    const refusal = locale === "uk" ? "Не хочу надавати номер реєстрації" : locale === "es" ? "Prefiero no facilitar la matrícula" : "I prefer not to provide the registration plate";
+    submitMessage(refusal);
+  }
+
   return (
     <div className="site-shell">
       <header className="site-header">
@@ -484,7 +527,10 @@ export default function Home() {
                 type="button"
                 className={locale === x ? "active" : ""}
                 aria-pressed={locale === x}
-                onClick={() => setLocale(x)}
+                onClick={() => {
+                  if (locale !== x && !busy) setLocale(x);
+                }}
+                disabled={busy && locale !== x}
               >
                 {x === "uk" ? "УКР" : x.toUpperCase()}
               </button>
@@ -656,6 +702,37 @@ export default function Home() {
                               </div>
                             </form>
                           )}
+                          {item.result.intakeStep === "registration" && index === messages.length - 1 && (
+                            <form className="vin-form plate-form" onSubmit={confirmPlate}>
+                              <label className="visually-hidden" htmlFor="plate-input">{c.plateLabel}</label>
+                              <div className={`spanish-plate ${plateError ? "invalid" : ""}`}>
+                                <div className="plate-country" aria-hidden="true">
+                                  <span aria-hidden="true">✦ ✦<br />✦ ✦ ✦<br />✦ ✦</span>
+                                  <b>E</b>
+                                </div>
+                                <input
+                                  id="plate-input"
+                                  type="text"
+                                  value={plateInput.length > 4 ? `${plateInput.slice(0, 4)} ${plateInput.slice(4)}` : plateInput}
+                                  onChange={(event) => {
+                                    setPlateInput(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7));
+                                    setPlateError("");
+                                  }}
+                                  placeholder={c.platePlaceholder}
+                                  maxLength={8}
+                                  autoComplete="off"
+                                  aria-invalid={Boolean(plateError)}
+                                  aria-describedby={plateError ? "plate-error" : undefined}
+                                  disabled={busy}
+                                />
+                              </div>
+                              {plateError && <span id="plate-error" className="vin-error" role="alert">{plateError}</span>}
+                              <div className="vin-actions">
+                                <button type="submit" disabled={busy}>{c.plateConfirm}</button>
+                                <button type="button" className="vin-reject" onClick={rejectPlate} disabled={busy}>{c.plateReject}</button>
+                              </div>
+                            </form>
+                          )}
                           {item.result.followUp && (
                             <p className="follow-up">{item.result.followUp}</p>
                           )}
@@ -676,23 +753,6 @@ export default function Home() {
                           {item.result.cards?.map((card, i) => (
                             <PartCard key={i} card={card} c={c} />
                           ))}
-                          {item.result.sources?.length > 0 && (
-                            <details className="sources">
-                              <summary>
-                                {c.sources} ({item.result.sources.length})
-                              </summary>
-                              {item.result.sources.map((source, i) => (
-                                <a
-                                  key={i}
-                                  href={source.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {source.title || source.url} ↗
-                                </a>
-                              ))}
-                            </details>
-                          )}
                         </div>
                       </div>
                     ),
