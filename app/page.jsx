@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { buildConsultationReport, downloadConsultationReport } from "../lib/consultationReport";
 
 const copy = {
   es: {
@@ -55,6 +56,7 @@ const copy = {
     voiceUnsupported: "El dictado está disponible en Chrome o Edge.",
     voiceBlocked: "Permite el micrófono para dictar.",
     listening: "Escuchando…",
+    generateReport: "Generar informe",
   },
   uk: {
     org: "Некомерційна організація",
@@ -108,6 +110,7 @@ const copy = {
     voiceUnsupported: "Диктант доступний у Chrome або Edge.",
     voiceBlocked: "Дозвольте мікрофон, щоб диктувати.",
     listening: "Слухаю…",
+    generateReport: "Сформувати звіт",
   },
   en: {
     org: "Non-profit organisation",
@@ -161,6 +164,7 @@ const copy = {
     voiceUnsupported: "Dictation is available in Chrome or Edge.",
     voiceBlocked: "Allow the microphone to dictate.",
     listening: "Listening…",
+    generateReport: "Generate report",
   },
 };
 
@@ -555,19 +559,32 @@ export default function Home() {
               <h2>{c.chatTitle}</h2>
               <p>{c.chatSub}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                stopDictation();
-                setMessages([]);
-                setPendingPhoto(null);
-                setPhotoError("");
-                setVoiceError("");
-              }}
-              className="new-chat"
-            >
-              ＋ {c.newChat}
-            </button>
+            <div className="workspace-actions">
+              <button
+                type="button"
+                className="report-btn"
+                disabled={!messages.some((item) => item.role === "assistant")}
+                onClick={() => {
+                  const report = buildConsultationReport({ messages, locale });
+                  downloadConsultationReport(report);
+                }}
+              >
+                {c.generateReport}
+              </button>
+              <button
+                type="button"
+                className="new-chat"
+                onClick={() => {
+                  stopDictation();
+                  setMessages([]);
+                  setPendingPhoto(null);
+                  setPhotoError("");
+                  setVoiceError("");
+                }}
+              >
+                ＋ {c.newChat}
+              </button>
+            </div>
           </div>
 
           <div className="workspace-grid">

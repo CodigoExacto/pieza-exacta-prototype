@@ -301,6 +301,31 @@ textarea:focus-visible {
 .new-chat:hover {
   background: var(--blue-soft);
 }
+.workspace-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.report-btn {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.report-btn:hover:not(:disabled) {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.report-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .workspace-grid {
   min-width: 0;
 }
@@ -937,7 +962,8 @@ textarea:focus-visible {
   .workspace-heading p {
     font-size: 10px;
   }
-  .new-chat {
+  .new-chat,
+  .report-btn {
     padding: 8px 9px;
     font-size: 9px;
   }
