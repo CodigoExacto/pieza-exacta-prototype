@@ -21,16 +21,17 @@
 
 :root {
   color-scheme: light;
-  --page: #f1f5f9;
-  --surface: #ffffff;
-  --surface-soft: #f8fafd;
-  --ink: #334155;
-  --muted: #64748b;
-  --subtle: #8796a9;
-  --border: #dce4ed;
-  --blue: #1044cb;
-  --blue-hover: #0c36a8;
-  --blue-soft: #eaf0ff;
+  --page: #151719;
+  --shell: rgba(235, 237, 239, 0.93);
+  --surface: rgba(250, 250, 251, 0.94);
+  --surface-soft: rgba(226, 229, 232, 0.82);
+  --ink: #17191b;
+  --muted: #555a5f;
+  --subtle: #767c81;
+  --border: rgba(76, 81, 86, 0.2);
+  --blue: #222629;
+  --blue-hover: #080a0b;
+  --blue-soft: #d9dcdf;
   --on-blue: #ffffff;
   --success: #17834c;
   --success-soft: #e9f7ee;
@@ -38,21 +39,22 @@
   --warning-soft: #fff5df;
   --danger: #9b2c32;
   --danger-soft: #fff2f2;
-  --shadow: 0 18px 55px rgba(35, 58, 96, 0.1);
+  --shadow: 0 18px 55px rgba(0, 0, 0, 0.12);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0c1422;
-  --surface: #152235;
-  --surface-soft: #19283c;
-  --ink: #edf3fc;
-  --muted: #aabbd1;
-  --subtle: #8499b3;
-  --border: #304259;
-  --blue: #8ab1ff;
-  --blue-hover: #6d9af4;
-  --blue-soft: #203456;
+  --page: #111315;
+  --shell: rgba(16, 18, 20, 0.95);
+  --surface: #1c1f22;
+  --surface-soft: #24282b;
+  --ink: #f1f2f2;
+  --muted: #c0c3c5;
+  --subtle: #959a9e;
+  --border: #3a3e41;
+  --blue: #e1e3e4;
+  --blue-hover: #ffffff;
+  --blue-soft: #363a3d;
   --on-blue: #ffffff;
   --success: #73d5a0;
   --success-soft: #193f31;
@@ -60,7 +62,7 @@
   --warning-soft: #483719;
   --danger: #ffb1b7;
   --danger-soft: #432b35;
-  --shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
+  --shadow: 0 18px 55px rgba(0, 0, 0, 0.38);
 }
 
 * {
@@ -73,6 +75,10 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--page);
+  background-image: linear-gradient(rgba(8, 10, 11, 0.68), rgba(8, 10, 11, 0.76)), url("/images/home-hero.png");
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
   font-family: "Wix Madefor Display", Arial, sans-serif;
 }
 button,
@@ -92,7 +98,12 @@ textarea:focus-visible {
   outline-offset: 3px;
 }
 .site-shell {
+  width: min(100%, 1440px);
   min-height: 100vh;
+  margin: 0 auto;
+  background: var(--shell);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 0 90px rgba(0, 0, 0, 0.28);
 }
 
 .site-header {
@@ -349,8 +360,8 @@ textarea:focus-visible {
 .answer-mark {
   display: grid;
   place-items: center;
-  background: #1044cb;
-  color: #fff;
+  background: var(--blue);
+  color: var(--on-blue);
   font-size: 10px;
   font-weight: 800;
   border-radius: 9px;
@@ -376,8 +387,14 @@ textarea:focus-visible {
   border: 4px solid var(--success-soft);
 }
 .chat-scroll {
-  min-height: clamp(340px, 43vw, 460px);
+  height: clamp(340px, 54vh, 620px);
+  min-height: 340px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--subtle) transparent;
   background: var(--surface-soft);
+  scroll-behavior: smooth;
 }
 .chat-content {
   max-width: 680px;
@@ -801,14 +818,14 @@ textarea:focus-visible {
   align-items: center;
   padding: 9px 12px;
   border-radius: 7px;
-  background: #1044cb;
-  color: #fff;
+  background: var(--blue);
+  color: var(--on-blue);
   text-decoration: none;
   font-size: 10px;
   font-weight: 800;
 }
 .source-button:hover {
-  background: #0c36a8;
+  background: var(--blue-hover);
 }
 .sources {
   margin: 15px 0;
@@ -944,13 +961,13 @@ textarea:focus-visible {
   padding: 11px 13px;
   border: 0;
   border-radius: 7px;
-  background: #1044cb;
-  color: #fff;
+  background: var(--blue);
+  color: var(--on-blue);
   font-size: 10px;
   font-weight: 800;
 }
 .composer .send-btn:hover:not(:disabled) {
-  background: #0c36a8;
+  background: var(--blue-hover);
 }
 .composer .send-btn:disabled {
   opacity: 0.5;
