@@ -35,6 +35,7 @@ const copy = {
     example3: "Equivalencias OEM 34111165556",
     inputLabel: "Tu consulta",
     placeholder: "Escribe tu pregunta sobre una pieza o un número OEM…",
+    placeholderMobile: "Pieza o OEM…",
     send: "Buscar pieza",
     sourceLink: "Ver en Avto.pro",
     loading: "Procesando tu consulta",
@@ -111,6 +112,7 @@ const copy = {
     example3: "Аналоги OEM 34111165556",
     inputLabel: "Ваш запит",
     placeholder: "Запитайте про деталь або номер OEM…",
+    placeholderMobile: "Деталь або OEM…",
     send: "Знайти деталь",
     sourceLink: "Відкрити на Avto.pro",
     loading: "Обробляю ваш запит",
@@ -187,6 +189,7 @@ const copy = {
     example3: "OEM 34111165556 alternatives",
     inputLabel: "Your inquiry",
     placeholder: "Ask about a part or OEM number…",
+    placeholderMobile: "Part or OEM…",
     send: "Find part",
     sourceLink: "View on Avto.pro",
     loading: "Processing your request",
@@ -380,6 +383,7 @@ export default function Home() {
   const [expertConsent, setExpertConsent] = useState(false);
   const [expertError, setExpertError] = useState("");
   const [submittedExpertRequests, setSubmittedExpertRequests] = useState(() => new Set());
+  const [compactComposer, setCompactComposer] = useState(false);
   const photoInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const dictationPrefixRef = useRef("");
@@ -401,6 +405,13 @@ export default function Home() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("pe-theme", theme);
   }, [theme, themeReady]);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 520px)");
+    const sync = () => setCompactComposer(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   function stopDictation() {
     const recognition = recognitionRef.current;
@@ -986,7 +997,7 @@ export default function Home() {
                         e.currentTarget.form.requestSubmit();
                       }
                     }}
-                    placeholder={listening ? c.listening : c.placeholder}
+                    placeholder={listening ? c.listening : compactComposer ? c.placeholderMobile : c.placeholder}
                     rows={1}
                   />
                   <button type="submit" className="send-btn" disabled={busy || (!input.trim() && !pendingPhoto)}>
