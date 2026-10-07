@@ -815,6 +815,28 @@ textarea:focus-visible {
   color: var(--ink);
   font-size: 13px;
 }
+.expert-qr {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.expert-qr span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.expert-qr img {
+  display: block;
+  width: min(100%, 180px);
+  height: auto;
+  border-radius: 12px;
+}
 .expert-form p,
 .expert-phone-label,
 .expert-consent,

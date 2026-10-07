@@ -72,6 +72,7 @@ const copy = {
     voiceBlocked: "Permite el micrófono para dictar.",
     listening: "Escuchando…",
     generateReport: "Guardar como PDF",
+    expertContact: "Contacto con el experto",
     expertTitle: "Revisión por un experto",
     expertDescription: "Si quieres, podemos enviar esta consulta a un experto para que revise el vehículo y la pieza.",
     expertPhone: "Tu número de WhatsApp",
@@ -150,6 +151,7 @@ const copy = {
     voiceBlocked: "Дозвольте мікрофон, щоб диктувати.",
     listening: "Слухаю…",
     generateReport: "Зберегти PDF",
+    expertContact: "Зв’язок з експертом",
     expertTitle: "Перевірка експертом",
     expertDescription: "За бажанням передамо цей запит експерту, щоб він перевірив автомобіль і запчастину.",
     expertPhone: "Ваш номер WhatsApp",
@@ -228,6 +230,7 @@ const copy = {
     voiceBlocked: "Allow the microphone to dictate.",
     listening: "Listening…",
     generateReport: "Save as PDF",
+    expertContact: "Contact the expert",
     expertTitle: "Expert review",
     expertDescription: "If you like, we can send this request to an expert to review the vehicle and part.",
     expertPhone: "Your WhatsApp number",
@@ -346,6 +349,10 @@ function ExpertHandoffForm({ c, phone, setPhone, consent, setConsent, error, onS
     <form className="expert-form" onSubmit={onSubmit}>
       <h3>{c.expertTitle}</h3>
       <p>{c.expertDescription}</p>
+      <div className="expert-qr">
+        <span>{c.expertContact}</span>
+        <img src="/images/expert-whatsapp-qr.png" alt={c.expertContact} />
+      </div>
       <label className="expert-phone-label" htmlFor="expert-phone">{c.expertPhone}</label>
       <input
         id="expert-phone"
