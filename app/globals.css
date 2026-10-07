@@ -134,6 +134,7 @@ textarea:focus-visible {
 .glass-board .callout,
 .glass-board .callout p,
 .glass-board .composer-wrap > p,
+.glass-board .search-chips-label,
 .glass-board .search-chips span,
 .glass-board .site-nav a {
   color: #3d4248;
@@ -153,6 +154,7 @@ textarea:focus-visible {
 [data-theme="dark"] .glass-board .callout,
 [data-theme="dark"] .glass-board .callout p,
 [data-theme="dark"] .glass-board .composer-wrap > p,
+[data-theme="dark"] .glass-board .search-chips-label,
 [data-theme="dark"] .glass-board .search-chips span,
 [data-theme="dark"] .glass-board .site-nav a {
   color: var(--muted);
@@ -1048,22 +1050,41 @@ textarea:focus-visible {
   border-color: rgba(255, 255, 255, 0.1);
 }
 .search-chips {
+  margin-top: 14px;
+  text-align: center;
+}
+.search-chips-label {
+  margin: 0 0 8px;
+  color: var(--subtle);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.search-chips-list {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin-top: 14px;
 }
 .search-chips span {
-  border: 1px solid var(--border);
+  border: 1px dashed color-mix(in srgb, var(--muted) 45%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  color: var(--muted);
-  padding: 8px 14px;
+  background: transparent;
+  color: var(--subtle);
+  padding: 6px 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: default;
   pointer-events: none;
+}
+.search-chips span::before {
+  content: "«";
+  margin-right: 4px;
+}
+.search-chips span::after {
+  content: "»";
+  margin-left: 4px;
 }
 .composer-wrap > label {
   display: block;
@@ -1495,7 +1516,7 @@ textarea:focus-visible {
     padding: 11px 14px;
     font-size: 12px;
   }
-  .search-chips {
+  .search-chips-list {
     gap: 6px;
   }
   .search-chips span {

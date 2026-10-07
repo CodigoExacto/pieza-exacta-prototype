@@ -30,6 +30,7 @@ const copy = {
     emptyTitle: "¿Qué recambio necesitas?",
     emptyText:
       "Incluye marca, modelo, año, motor y, si lo tienes, el número OEM o VIN.",
+    examplesLabel: "Por ejemplo",
     example1: "Pastillas delanteras BMW E46 316i 2001",
     example2: "Sensor de temperatura Audi A4 B8 2.0 TDI",
     example3: "Equivalencias OEM 34111165556",
@@ -107,6 +108,7 @@ const copy = {
     emptyTitle: "Яку запчастину ви шукаєте?",
     emptyText:
       "Укажіть марку, модель, рік, двигун і, якщо є, номер OEM або VIN.",
+    examplesLabel: "Наприклад",
     example1: "Передні колодки BMW E46 316i 2001",
     example2: "Датчик температури Audi A4 B8 2.0 TDI",
     example3: "Аналоги OEM 34111165556",
@@ -184,6 +186,7 @@ const copy = {
     emptyTitle: "What part do you need?",
     emptyText:
       "Include the make, model, year, engine and, if available, the OEM number or VIN.",
+    examplesLabel: "For example",
     example1: "Front pads BMW E46 316i 2001",
     example2: "Temperature sensor Audi A4 B8 2.0 TDI",
     example3: "OEM 34111165556 alternatives",
@@ -1006,9 +1009,12 @@ export default function Home() {
                 </div>
                 {messages.length === 0 && (
                   <div className="search-chips">
-                    {[c.example1, c.example2, c.example3].map((x) => (
-                      <span key={x}>{x}</span>
-                    ))}
+                    <p className="search-chips-label">{c.examplesLabel}</p>
+                    <div className="search-chips-list">
+                      {[c.example1, c.example2, c.example3].map((x) => (
+                        <span key={x}>{x}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <p>{c.note}</p>
