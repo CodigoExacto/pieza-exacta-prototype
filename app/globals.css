@@ -130,7 +130,7 @@ textarea:focus-visible {
 .glass-board .callout,
 .glass-board .callout p,
 .glass-board .composer-wrap > p,
-.glass-board .search-chips button,
+.glass-board .search-chips span,
 .glass-board .site-nav a {
   color: #3d4248;
 }
@@ -149,7 +149,7 @@ textarea:focus-visible {
 [data-theme="dark"] .glass-board .callout,
 [data-theme="dark"] .glass-board .callout p,
 [data-theme="dark"] .glass-board .composer-wrap > p,
-[data-theme="dark"] .glass-board .search-chips button,
+[data-theme="dark"] .glass-board .search-chips span,
 [data-theme="dark"] .glass-board .site-nav a {
   color: var(--muted);
 }
@@ -865,13 +865,15 @@ textarea:focus-visible {
 }
 .part-card {
   display: block;
+  min-width: 0;
   margin: 16px 0;
   padding: 15px;
   border: 1px solid var(--border);
   border-radius: 11px;
   background: var(--surface);
-  color: inherit;
+  color: var(--ink);
   text-decoration: none;
+  overflow: hidden;
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 .part-card:hover {
@@ -1048,19 +1050,16 @@ textarea:focus-visible {
   gap: 8px;
   margin-top: 14px;
 }
-.search-chips button {
+.search-chips span {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 70%, transparent);
   color: var(--muted);
   padding: 8px 14px;
-  font: inherit;
   font-size: 11px;
   font-weight: 700;
-}
-.search-chips button:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--ink);
+  cursor: default;
+  pointer-events: none;
 }
 .composer-wrap > label {
   display: block;
@@ -1481,7 +1480,7 @@ textarea:focus-visible {
   .search-chips {
     gap: 6px;
   }
-  .search-chips button {
+  .search-chips span {
     max-width: 100%;
     font-size: 10px;
   }

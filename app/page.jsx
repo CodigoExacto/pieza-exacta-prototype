@@ -881,6 +881,26 @@ export default function Home() {
                               </span>
                             </div>
                           )}
+                          {item.result.cards?.map((card) => (
+                            <PartCard key={card.url || card.partNumber} card={card} c={c} />
+                          ))}
+                          {item.result.sources?.length > 0 && (
+                            <details className="sources">
+                              <summary>
+                                {c.sources} ({item.result.sources.length})
+                              </summary>
+                              {item.result.sources.map((source) => (
+                                <a
+                                  key={source.url}
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {source.title || source.url} ↗
+                                </a>
+                              ))}
+                            </details>
+                          )}
                           {item.result.expertHandoff && !submittedExpertRequests.has(index) && (
                             <ExpertHandoffForm
                               c={c}
@@ -976,9 +996,7 @@ export default function Home() {
                 {messages.length === 0 && (
                   <div className="search-chips">
                     {[c.example1, c.example2, c.example3].map((x) => (
-                      <button key={x} type="button" disabled={busy} onClick={() => submitMessage(x)}>
-                        {x}
-                      </button>
+                      <span key={x}>{x}</span>
                     ))}
                   </div>
                 )}
