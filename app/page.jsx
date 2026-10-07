@@ -16,6 +16,14 @@ const copy = {
     transparency: "Fuentes visibles",
     compatibility: "Compatibilidad explicada",
     alternativesLabel: "Equivalencias documentadas",
+    callout1Title: "Compatibilidad",
+    callout1Text: "Ordenamos la pieza según VIN, marca, modelo y motor, y marcamos lo que no está confirmado.",
+    callout2Title: "Códigos OEM originales",
+    callout2Text: "Mostramos el número de fabricante y las supersesiones documentadas cuando aparecen en fuentes.",
+    callout3Title: "Equivalencias revisadas",
+    callout3Text: "Proponemos análogos solo con un cruce documentado, no por un título parecido.",
+    callout4Title: "Fuentes visibles",
+    callout4Text: "Cada propuesta se apoya en enlaces consultados; no inventamos stock ni precios.",
     chatTitle: "Asistente de recambios",
     chatSub: "Describe el vehículo y la pieza que necesitas",
     newChat: "Nueva consulta",
@@ -84,6 +92,14 @@ const copy = {
     transparency: "Видимі джерела",
     compatibility: "Пояснення сумісності",
     alternativesLabel: "Підтверджені аналоги",
+    callout1Title: "Сумісність",
+    callout1Text: "Підбираємо деталь за VIN, маркою, моделлю й мотором і позначаємо, що ще не підтверджено.",
+    callout2Title: "Оригінальні OEM-коди",
+    callout2Text: "Показуємо номер виробника та задокументовані заміни, якщо вони є в джерелах.",
+    callout3Title: "Перевірені аналоги",
+    callout3Text: "Пропонуємо аналоги лише з крос-референсом, не за схожою назвою.",
+    callout4Title: "Видимі джерела",
+    callout4Text: "Кожна пропозиція спирається на переглянуті посилання; наявність і ціну не вигадуємо.",
     chatTitle: "Помічник із запчастин",
     chatSub: "Опишіть авто й потрібну деталь",
     newChat: "Новий запит",
@@ -152,6 +168,14 @@ const copy = {
     transparency: "Visible sources",
     compatibility: "Explained fitment",
     alternativesLabel: "Documented alternatives",
+    callout1Title: "Fitment",
+    callout1Text: "We match the part to VIN, make, model and engine, and label what is still unconfirmed.",
+    callout2Title: "Original OEM codes",
+    callout2Text: "We show the manufacturer number and documented supersessions when sources include them.",
+    callout3Title: "Reviewed alternatives",
+    callout3Text: "Analogues appear only with a documented cross-reference, not from a similar title.",
+    callout4Title: "Visible sources",
+    callout4Text: "Each proposal is tied to consulted links; we do not invent stock or prices.",
     chatTitle: "Parts assistant",
     chatSub: "Describe the vehicle and part you need",
     newChat: "New inquiry",
@@ -363,7 +387,7 @@ export default function Home() {
   useEffect(() => {
     const savedLocale = getSaved("pe-lang", "es");
     setLocale(copy[savedLocale] ? savedLocale : "es");
-    const savedTheme = getSaved("pe-theme", "light");
+    const savedTheme = getSaved("pe-theme", "dark");
     setTheme(savedTheme === "dark" ? "dark" : "light");
     setThemeReady(true);
   }, []);
@@ -598,17 +622,19 @@ export default function Home() {
 
   return (
     <div className="site-shell">
+      <div className={`hero-stage${messages.length ? " is-chatting" : ""}`}>
+        <div className="glass-board">
       <header className="site-header">
         <div className="header-inner">
-          <a className="identity" href="/" aria-label="Pieza Exacta">
-            <img src="/images/logo.svg" alt="Pieza Exacta" />
-            <span>{c.org}</span>
-          </a>
           <nav className="site-nav" aria-label="Pieza Exacta">
             <a href="https://piezaexacta.es/about/">{c.about}</a>
             <a href="https://piezaexacta.es/blog/">{c.resources}</a>
             <a href="https://piezaexacta.es/contacts/">{c.contact}</a>
           </nav>
+          <a className="identity" href="/" aria-label="Pieza Exacta">
+            <img src="/images/logo.svg" alt="Pieza Exacta" />
+          </a>
+          <div className="header-tools">
           <div className="language-menu" aria-label="Language">
             {["es", "uk", "en"].map((x) => (
               <button
@@ -662,38 +688,51 @@ export default function Home() {
               </svg>
             )}
           </button>
+          </div>
         </div>
       </header>
 
       <main className="experience-layout">
-        <section className="intro-section">
-          <div className="intro-copy">
-            <div className="eyebrow">
-              <span></span>
-              {c.eyebrow}
-            </div>
-            <h1>{c.title}</h1>
-            <p>{c.subtitle}</p>
-          </div>
-          <div className="intro-image" role="img" aria-label={c.imageAlt}>
-            <div className="image-caption">
-              PiezaExacta <span>·</span> {c.resources}
-            </div>
-          </div>
-          <div className="trust-points">
-            <span>✓ {c.transparency}</span>
-            <span>✓ {c.compatibility}</span>
-            <span>✓ {c.alternativesLabel}</span>
-          </div>
+        <div className="hero-row">
+        <section className="intro-copy">
+          <h1>{c.title}</h1>
+          <p>{c.subtitle}</p>
         </section>
+        <section className="intro-visual" aria-label={c.imageAlt}>
+          <article className="callout callout-1">
+            <b>1</b>
+            <div>
+              <strong>{c.callout1Title}</strong>
+              <p>{c.callout1Text}</p>
+            </div>
+          </article>
+          <img className="intro-product" src="/images/Disk.png" alt={c.imageAlt} />
+          <article className="callout callout-2">
+            <b>2</b>
+            <div>
+              <strong>{c.callout2Title}</strong>
+              <p>{c.callout2Text}</p>
+            </div>
+          </article>
+          <article className="callout callout-3">
+            <b>3</b>
+            <div>
+              <strong>{c.callout3Title}</strong>
+              <p>{c.callout3Text}</p>
+            </div>
+          </article>
+          <article className="callout callout-4">
+            <b>4</b>
+            <div>
+              <strong>{c.callout4Title}</strong>
+              <p>{c.callout4Text}</p>
+            </div>
+          </article>
+        </section>
+        </div>
 
         <section className="workspace">
           <div className="workspace-heading">
-            <div>
-              <div className="section-kicker">{c.section}</div>
-              <h2>{c.chatTitle}</h2>
-              <p>{c.chatSub}</p>
-            </div>
             <div className="workspace-actions">
               <button
                 type="button"
@@ -728,30 +767,8 @@ export default function Home() {
 
           <div className="workspace-grid">
             <section className="chat-panel" aria-label={c.chatTitle}>
-              <div className="chat-header">
-                <div className="assistant-avatar">PE</div>
-                <div>
-                  <strong>PiezaExacta</strong>
-                  <small>{c.chatTitle}</small>
-                </div>
-                <div className="status-dot" aria-hidden="true" />
-              </div>
               <div className="chat-scroll">
                 <div className="chat-content">
-                  {messages.length === 0 && (
-                    <div className="empty-chat">
-                      <div className="empty-icon">
-                        <span>⌕</span>
-                      </div>
-                      <h3>{c.emptyTitle}</h3>
-                      <p>{c.emptyText}</p>
-                      <div className="suggestions">
-                        {[c.example1, c.example2, c.example3].map((x) => (
-                          <p key={x}>{x}</p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   {messages.map((item, index) =>
                     item.role === "user" ? (
                       <div className="message user" key={index}>
@@ -864,9 +881,6 @@ export default function Home() {
                               </span>
                             </div>
                           )}
-                          {item.result.cards?.map((card, i) => (
-                            <PartCard key={i} card={card} c={c} />
-                          ))}
                           {item.result.expertHandoff && !submittedExpertRequests.has(index) && (
                             <ExpertHandoffForm
                               c={c}
@@ -890,8 +904,11 @@ export default function Home() {
                   )}
                 </div>
               </div>
+            </section>
+          </div>
+        </section>
               <form className="composer-wrap" onSubmit={send}>
-                <label htmlFor="chat-input">{c.inputLabel}</label>
+                <label className="visually-hidden" htmlFor="chat-input">{c.inputLabel}</label>
                 {pendingPhoto && (
                   <div className="photo-preview">
                     <img src={pendingPhoto.dataUrl} alt="" />
@@ -950,18 +967,26 @@ export default function Home() {
                       }
                     }}
                     placeholder={listening ? c.listening : c.placeholder}
-                    rows={2}
+                    rows={1}
                   />
                   <button type="submit" className="send-btn" disabled={busy || (!input.trim() && !pendingPhoto)}>
-                    {c.send} <span aria-hidden="true">↗</span>
+                    {c.send} <span aria-hidden="true">→</span>
                   </button>
                 </div>
+                {messages.length === 0 && (
+                  <div className="search-chips">
+                    {[c.example1, c.example2, c.example3].map((x) => (
+                      <button key={x} type="button" disabled={busy} onClick={() => submitMessage(x)}>
+                        {x}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p>{c.note}</p>
               </form>
-            </section>
-          </div>
-        </section>
       </main>
+        </div>
+      </div>
       <footer className="site-footer">
         <span>© 2026 Digital Transparency Hub “Pieza Exacta”</span>
         <a href="https://piezaexacta.es/privacy-policy/">{c.privacy} ↗</a>
